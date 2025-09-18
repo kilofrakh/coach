@@ -16,46 +16,34 @@ workout = WorkoutCounter()
 RTC_CONFIGURATION = RTCConfiguration(
     {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
 )
+import cv2
+import mediapipe as mp
+import numpy as np
+from streamlit_webrtc import VideoProcessorBase
 
 class WorkoutProcessor(VideoProcessorBase):
     def __init__(self):
-        self.pTime = 0
+        self.pose = mp.solutions.pose.Pose()
+        self.frame_count = 0
 
     def recv(self, frame):
         img = frame.to_ndarray(format="bgr24")
-        img = cv2.resize(img, (960, 540))
-        img = detector.findPose(img, draw=False)
-        lmList = detector.findPosition(img, draw=False)
 
-        if lmList:
-            if lmList[31][2] + 50 > lmList[29][2] and lmList[32][2] + 50 > lmList[30][2]:
-                angle = detector.findAngle(11, 13, 15, img, draw=True)
-                detector.findAngle(12, 14, 16, img, draw=True)
-                detector.findAngle(27, 29, 31, img, draw=True)
-                detector.findAngle(28, 30, 32, img, draw=True)
+        # ✅ Downscale to save memory/CPU
+        img = cv2.resize(img, (640, 360))
 
-                workout.update(angle)
+        self.frame_count += 1
 
-                cTime = time.time()
-                fps = 1 / (cTime - self.pTime) if self.pTime > 0 else 0
-                self.pTime = cTime
+        # ✅ Only process every 3rd frame
+        if self.frame_count % 3 == 0:
+            results = self.pose.process(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
 
-                img = View.showWorkout(img, workout, fps)
-            else:
-                img = View.showInstruction(img)
-        else:
-            img = View.showInstruction(img)
+            if results.pose_landmarks:
+                mp.solutions.drawing_utils.draw_landmarks(
+                    img, 
+                    results.pose_landmarks, 
+                    mp.solutions.pose.POSE_CONNECTIONS,
+                    mp.solutions.drawing_styles.get_default_pose_landmarks_style()
+                )
 
         return av.VideoFrame.from_ndarray(img, format="bgr24")
-
-
-from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, RTCConfiguration, WebRtcMode
-
-webrtc_streamer(
-    key="pose-tracker",
-    mode=WebRtcMode.RECVONLY,  # ✅ correct
-    rtc_configuration=RTC_CONFIGURATION,
-    video_processor_factory=WorkoutProcessor,
-    media_stream_constraints={"video": True, "audio": False},
-)
-
