@@ -2,8 +2,8 @@ import cv2
 import time
 import numpy as np
 import streamlit as st
-from app.model.model import PoseDetector, WorkoutCounter
-from app.view.draw import View
+from model.model import PoseDetector, WorkoutCounter
+from view.draw import View
 
 st.set_page_config(page_title="Pose Workout Tracker", layout="wide")
 st.title("🏋️ Pose Workout Tracker")
