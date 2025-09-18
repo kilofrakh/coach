@@ -5,10 +5,12 @@ import streamlit as st
 from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, RTCConfiguration
 from model.model import PoseDetector, WorkoutCounter
 from view.draw import View
+import mediapipe as mp
+import numpy as np
 
 st.set_page_config(page_title="Pose Workout Tracker", layout="wide")
 st.title("🏋️ Pose Workout Tracker")
-st.text("pushup")
+st.text("Push-up Tracker")
 
 detector = PoseDetector(detectionCon=0.8)
 workout = WorkoutCounter()
@@ -16,10 +18,7 @@ workout = WorkoutCounter()
 RTC_CONFIGURATION = RTCConfiguration(
     {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
 )
-import cv2
-import mediapipe as mp
-import numpy as np
-from streamlit_webrtc import VideoProcessorBase
+
 
 class WorkoutProcessor(VideoProcessorBase):
     def __init__(self):
@@ -40,10 +39,20 @@ class WorkoutProcessor(VideoProcessorBase):
 
             if results.pose_landmarks:
                 mp.solutions.drawing_utils.draw_landmarks(
-                    img, 
-                    results.pose_landmarks, 
+                    img,
+                    results.pose_landmarks,
                     mp.solutions.pose.POSE_CONNECTIONS,
-                    mp.solutions.drawing_styles.get_default_pose_landmarks_style()
+                    mp.solutions.drawing_styles.get_default_pose_landmarks_style(),
                 )
 
         return av.VideoFrame.from_ndarray(img, format="bgr24")
+
+
+# ✅ Start the webcam stream
+webrtc_streamer(
+    key="pose-workout",
+    mode="SENDRECV",  # ensures send + receive video
+    rtc_configuration=RTC_CONFIGURATION,
+    video_processor_factory=WorkoutProcessor,
+    media_stream_constraints={"video": True, "audio": False},
+)
