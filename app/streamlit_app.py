@@ -48,11 +48,20 @@ class WorkoutProcessor(VideoProcessorBase):
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
 
-from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, RTCConfiguration, WebRtcMode
+from streamlit_webrtc import (
+    webrtc_streamer,
+    VideoProcessorBase,
+    RTCConfiguration,
+    WebRtcMode,
+)
+
+RTC_CONFIGURATION = RTCConfiguration(
+    {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
+)
 
 webrtc_streamer(
     key="pose-workout",
-    mode=WebRtcMode.SENDRECV,  # ✅ correct usage
+    mode=WebRtcMode.SENDRECV,
     rtc_configuration=RTC_CONFIGURATION,
     video_processor_factory=WorkoutProcessor,
     media_stream_constraints={"video": True, "audio": False},
