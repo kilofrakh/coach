@@ -8,7 +8,7 @@ from view.draw import View
 
 st.set_page_config(page_title="Pose Workout Tracker", layout="wide")
 st.title("🏋️ Pose Workout Tracker")
-st.text("Real-time pose detection with Mediapipe + OpenCV + Streamlit")
+st.text("pushup")
 
 detector = PoseDetector(detectionCon=0.8)
 workout = WorkoutCounter()
@@ -49,10 +49,13 @@ class WorkoutProcessor(VideoProcessorBase):
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
 
+from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, RTCConfiguration, WebRtcMode
+
 webrtc_streamer(
     key="pose-tracker",
-    mode="recvonly",
+    mode=WebRtcMode.RECVONLY,  # ✅ correct
     rtc_configuration=RTC_CONFIGURATION,
     video_processor_factory=WorkoutProcessor,
     media_stream_constraints={"video": True, "audio": False},
 )
+
