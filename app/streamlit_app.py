@@ -3,8 +3,8 @@ import time
 import av
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, RTCConfiguration
-from app.model.model import PoseDetector, WorkoutCounter
-from app.view.draw import View
+from model.model import PoseDetector, WorkoutCounter
+from view.draw import View
 
 st.set_page_config(page_title="Pose Workout Tracker", layout="wide")
 st.title("🏋️ Pose Workout Tracker")
