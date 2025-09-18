@@ -48,10 +48,11 @@ class WorkoutProcessor(VideoProcessorBase):
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
 
-# ✅ Start the webcam stream
+from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, RTCConfiguration, WebRtcMode
+
 webrtc_streamer(
     key="pose-workout",
-    mode="SENDRECV",  # ensures send + receive video
+    mode=WebRtcMode.SENDRECV,  # ✅ correct usage
     rtc_configuration=RTC_CONFIGURATION,
     video_processor_factory=WorkoutProcessor,
     media_stream_constraints={"video": True, "audio": False},
