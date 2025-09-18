@@ -2,12 +2,20 @@ import cv2
 import time
 import av
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, RTCConfiguration
-from model.model import PoseDetector, WorkoutCounter
-from view.draw import View
 import mediapipe as mp
 import numpy as np
+from streamlit_webrtc import (
+    webrtc_streamer,
+    VideoProcessorBase,
+    RTCConfiguration,
+    WebRtcMode,
+)
+from model.model import PoseDetector, WorkoutCounter
+from view.draw import View
 
+# ----------------------------
+# Streamlit page setup
+# ----------------------------
 st.set_page_config(page_title="Pose Workout Tracker", layout="wide")
 st.title("🏋️ Pose Workout Tracker")
 st.text("Push-up Tracker")
@@ -15,11 +23,16 @@ st.text("Push-up Tracker")
 detector = PoseDetector(detectionCon=0.8)
 workout = WorkoutCounter()
 
+# ----------------------------
+# WebRTC config (STUN only)
+# ----------------------------
 RTC_CONFIGURATION = RTCConfiguration(
     {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
 )
 
-
+# ----------------------------
+# Video Processor
+# ----------------------------
 class WorkoutProcessor(VideoProcessorBase):
     def __init__(self):
         self.pose = mp.solutions.pose.Pose()
@@ -48,17 +61,9 @@ class WorkoutProcessor(VideoProcessorBase):
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
 
-from streamlit_webrtc import (
-    webrtc_streamer,
-    VideoProcessorBase,
-    RTCConfiguration,
-    WebRtcMode,
-)
-
-RTC_CONFIGURATION = RTCConfiguration(
-    {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
-)
-
+# ----------------------------
+# WebRTC Stream
+# ----------------------------
 webrtc_streamer(
     key="pose-workout",
     mode=WebRtcMode.SENDRECV,
