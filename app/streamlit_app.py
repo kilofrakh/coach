@@ -10,8 +10,8 @@ from streamlit_webrtc import (
     RTCConfiguration,
     WebRtcMode,
 )
-from model.model import PoseDetector, WorkoutCounter
-from view.draw import View
+from app.model.pose_detector import PoseDetector, WorkoutCounter
+from app.view.ui import View
 
 # ----------------------------
 # Streamlit page setup
