@@ -1,35 +1,30 @@
 import cv2
+import base64
 import numpy as np
 from fastapi import APIRouter, UploadFile, File
 from models.pose_detector import PoseDetector
 from views.response_builder import build_response
 
 router = APIRouter()
-
-detector = PoseDetector(detectionCon=0.8)
-count, dir, per = 0, 0, 0
+pose_detector = PoseDetector()
 
 @router.post("/process_frame")
 async def process_frame(file: UploadFile = File(...)):
-    global count, dir, per
-
-    img_bytes = await file.read()
-    nparr = np.frombuffer(img_bytes, np.uint8)
+    # Read image bytes
+    image_bytes = await file.read()
+    nparr = np.frombuffer(image_bytes, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-    img = detector.findPose(img, draw=False)
-    lmList = detector.findPosition(img, draw=False)
+    # Run detection
+    img, keypoints = pose_detector.findPose(img)
 
-    if len(lmList):
-        angle = detector.findAngle(img, 11, 13, 15)
-        per = -1.25 * angle + 212.5
-        per = max(0, min(100, per))
+    # Example: calculate left arm angle
+    angle = None
+    if len(keypoints) > 0:
+        angle = pose_detector.findAngle(keypoints[0], 5, 7, 9)
 
-        if per >= 95 and dir == 0:
-            count += 0.5
-            dir = 1
-        elif per <= 5 and dir == 1:
-            count += 0.5
-            dir = 0
+    # Encode image back to base64
+    _, buffer = cv2.imencode(".jpg", img)
+    img_str = base64.b64encode(buffer).decode("utf-8")
 
-    return build_response(img, count, per)
+    return build_response(img_str, angle)
