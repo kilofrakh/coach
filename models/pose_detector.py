@@ -1,54 +1,55 @@
 import cv2
-import mediapipe as mp
-import math
 import numpy as np
+from ultralytics import YOLO
 
 class PoseDetector:
-    def __init__(self, mode=False, smooth=True, detectionCon=0.5, trackingCon=0.5):
-        self.mpPose = mp.solutions.pose
-        self.pose = self.mpPose.Pose(
-            static_image_mode=mode,
-            smooth_landmarks=smooth,
-            min_detection_confidence=detectionCon,
-            min_tracking_confidence=trackingCon
-        )
-        self.mpDraw = mp.solutions.drawing_utils
-        self.lmList = []
+    def __init__(self, model_name="yolov8n-pose.pt"):
+        """
+        Initialize YOLOv8 Pose model.
+        - model_name: you can swap with yolov8s/m/l/x-pose.pt depending on accuracy/speed tradeoff.
+        """
+        self.model = YOLO(model_name)
 
     def findPose(self, img, draw=True):
-        imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        self.results = self.pose.process(imgRGB)
-        if draw and self.results.pose_landmarks:
-            self.mpDraw.draw_landmarks(img, self.results.pose_landmarks, self.mpPose.POSE_CONNECTIONS)
-        return img
+        """
+        Run pose detection on an image.
+        Returns:
+            img (with keypoints drawn if draw=True)
+            keypoints (list of [x,y] coordinates for each detected person)
+        """
+        results = self.model(img, verbose=False)[0]
+        keypoints = []
 
-    def findPosition(self, img, draw=True):
-        self.lmList = []
-        if self.results.pose_landmarks:
-            for id, lm in enumerate(self.results.pose_landmarks.landmark):
-                h, w, _ = img.shape
-                cx, cy = int(lm.x * w), int(lm.y * h)
-                self.lmList.append([id, cx, cy])
-                if draw:
-                    cv2.circle(img, (cx, cy), 5, (0, 255, 0), cv2.FILLED)
-        return self.lmList
+        if results.keypoints is not None:
+            keypoints = results.keypoints.xy.cpu().numpy()  # shape: (persons, 17, 2)
 
-    def findAngle(self, img, p1, p2, p3, draw=True):
-        x1, y1 = self.lmList[p1][1], self.lmList[p1][2]
-        x2, y2 = self.lmList[p2][1], self.lmList[p2][2]
-        x3, y3 = self.lmList[p3][1], self.lmList[p3][2]
+            if draw:
+                for person in keypoints:
+                    for x, y in person:
+                        cv2.circle(img, (int(x), int(y)), 4, (0, 255, 0), -1)
 
-        angle = math.degrees(
-            math.atan2(y3 - y2, x3 - x2) - math.atan2(y1 - y2, x1 - x2)
-        )
-        if angle > 180: angle = 360 - angle
-        elif angle < 0: angle = -angle
+        return img, keypoints
 
-        if draw:
-            cv2.circle(img, (x1, y1), 10, (64, 127, 255), cv2.FILLED)
-            cv2.circle(img, (x2, y2), 10, (64, 127, 255), cv2.FILLED)
-            cv2.circle(img, (x3, y3), 10, (64, 127, 255), cv2.FILLED)
-            cv2.line(img, (x1, y1), (x2, y2), (255, 127, 64), 3)
-            cv2.line(img, (x2, y2), (x3, y3), (255, 127, 64), 3)
+    def findAngle(self, keypoints, p1, p2, p3):
+        """
+        Calculate angle between 3 keypoints.
+        Args:
+            keypoints: np.array of shape (17, 2) from YOLO
+            p1, p2, p3: indices of points (e.g., 5, 7, 9 for left arm)
+        Returns:
+            angle in degrees
+        """
+        if keypoints is None or len(keypoints) < 17:
+            return None
+
+        x1, y1 = keypoints[p1]
+        x2, y2 = keypoints[p2]
+        x3, y3 = keypoints[p3]
+
+        # Calculate angle
+        a = np.array([x1 - x2, y1 - y2])
+        b = np.array([x3 - x2, y3 - y2])
+        cos_angle = np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+        angle = np.degrees(np.arccos(np.clip(cos_angle, -1.0, 1.0)))
 
         return angle
